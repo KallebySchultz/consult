@@ -15,37 +15,48 @@ if ($editing) {
     $pacienteId = $registro['paciente_id'];
 }
 
-if (!$pacienteId) { flash('Paciente não informado.', 'error'); redirect('pacientes.php'); }
+// Load all patients for optional selection dropdown
+$todosPacientes = $db->query("SELECT id, nome FROM pacientes ORDER BY nome ASC")->fetchAll();
 
-$stmtP = $db->prepare("SELECT id, nome FROM pacientes WHERE id = ?");
-$stmtP->execute([$pacienteId]);
-$paciente = $stmtP->fetch();
-if (!$paciente) { flash('Paciente não encontrado.', 'error'); redirect('pacientes.php'); }
+$paciente = null;
+if ($pacienteId) {
+    $stmtP = $db->prepare("SELECT id, nome FROM pacientes WHERE id = ?");
+    $stmtP->execute([$pacienteId]);
+    $paciente = $stmtP->fetch();
+    if (!$paciente) { flash('Paciente não encontrado.', 'error'); redirect('pacientes.php'); }
+}
 
 $pageTitle  = $editing ? 'Editar Prontuário' : 'Novo Prontuário';
 $activePage = 'prontuarios';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!$editing) {
+        $pacienteId = (int)($_POST['paciente_id'] ?? 0);
+    }
     $dataConsulta = $_POST['data_consulta'] ?? date('Y-m-d');
     $tipo         = $_POST['tipo'] ?? 'Consulta';
     $evolucao     = trim($_POST['evolucao'] ?? '');
     $prescricao   = trim($_POST['prescricao'] ?? '');
     $exames       = trim($_POST['exames'] ?? '');
 
-    if ($editing) {
-        $stmt = $db->prepare(
-            "UPDATE prontuario SET data_consulta=?, tipo=?, evolucao=?, prescricao=?, exames=? WHERE id=?"
-        );
-        $stmt->execute([$dataConsulta, $tipo, $evolucao, $prescricao, $exames, $id]);
+    if (!$pacienteId) {
+        flash('Selecione um paciente.', 'error');
     } else {
-        $stmt = $db->prepare(
-            "INSERT INTO prontuario (paciente_id, data_consulta, tipo, evolucao, prescricao, exames) VALUES (?,?,?,?,?,?)"
-        );
-        $stmt->execute([$pacienteId, $dataConsulta, $tipo, $evolucao, $prescricao, $exames]);
-    }
+        if ($editing) {
+            $stmt = $db->prepare(
+                "UPDATE prontuario SET data_consulta=?, tipo=?, evolucao=?, prescricao=?, exames=? WHERE id=?"
+            );
+            $stmt->execute([$dataConsulta, $tipo, $evolucao, $prescricao, $exames, $id]);
+        } else {
+            $stmt = $db->prepare(
+                "INSERT INTO prontuario (paciente_id, data_consulta, tipo, evolucao, prescricao, exames) VALUES (?,?,?,?,?,?)"
+            );
+            $stmt->execute([$pacienteId, $dataConsulta, $tipo, $evolucao, $prescricao, $exames]);
+        }
 
-    flash($editing ? 'Prontuário atualizado.' : 'Registro adicionado ao prontuário.');
-    redirect('paciente_ver.php?id=' . $pacienteId);
+        flash($editing ? 'Prontuário atualizado.' : 'Registro adicionado ao prontuário.');
+        redirect('paciente_ver.php?id=' . $pacienteId . '#tab-prontuario');
+    }
 }
 
 include 'includes/header.php';
@@ -53,17 +64,35 @@ include 'includes/header.php';
 
 <div class="page-bar">
     <h2><?= $editing ? 'Editar Registro' : 'Novo Registro no Prontuário' ?></h2>
-    <a href="paciente_ver.php?id=<?= $pacienteId ?>" class="btn btn-outline">← Voltar</a>
+    <?php if ($paciente): ?>
+    <a href="paciente_ver.php?id=<?= $pacienteId ?>#tab-prontuario" class="btn btn-outline">← Voltar</a>
+    <?php else: ?>
+    <a href="prontuarios.php" class="btn btn-outline">← Prontuários</a>
+    <?php endif; ?>
 </div>
 
+<?php if ($paciente): ?>
 <p style="color:#6b7280;font-size:.9rem;margin-bottom:1rem;">
     Paciente: <strong style="color:#1a3a28;"><?= sanitize($paciente['nome']) ?></strong>
 </p>
+<?php endif; ?>
 
 <form method="post">
+    <?php if ($pacienteId || $editing): ?><input type="hidden" name="paciente_id" value="<?= $pacienteId ?>"><?php endif; ?>
     <div class="card">
         <h2>📋 Dados do Registro</h2>
         <div class="form-grid form-grid-2">
+            <?php if (!$paciente): ?>
+            <div class="form-group col-span-2">
+                <label>Paciente *</label>
+                <select name="paciente_id" required>
+                    <option value="">Selecione o paciente…</option>
+                    <?php foreach ($todosPacientes as $p): ?>
+                    <option value="<?= $p['id'] ?>"><?= sanitize($p['nome']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
             <div class="form-group">
                 <label>Data da Consulta</label>
                 <input type="date" name="data_consulta" required
@@ -94,7 +123,11 @@ include 'includes/header.php';
 
     <div class="form-actions">
         <button type="submit" class="btn btn-primary">💾 Salvar</button>
-        <a href="paciente_ver.php?id=<?= $pacienteId ?>" class="btn btn-outline">Cancelar</a>
+        <?php if ($paciente): ?>
+        <a href="paciente_ver.php?id=<?= $pacienteId ?>#tab-prontuario" class="btn btn-outline">Cancelar</a>
+        <?php else: ?>
+        <a href="prontuarios.php" class="btn btn-outline">Cancelar</a>
+        <?php endif; ?>
     </div>
 </form>
 
