@@ -15,20 +15,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 }
 
 $busca = trim($_GET['q'] ?? '');
+
 if ($busca) {
     $stmt = $db->prepare(
         "SELECT pr.*, p.nome as paciente_nome FROM prontuario pr
          JOIN pacientes p ON p.id = pr.paciente_id
-         WHERE p.nome LIKE ? ORDER BY pr.data_consulta DESC, pr.id DESC"
+         WHERE p.nome LIKE ?
+         ORDER BY pr.data_atendimento DESC, pr.id DESC"
     );
     $stmt->execute(["%$busca%"]);
 } else {
     $stmt = $db->query(
         "SELECT pr.*, p.nome as paciente_nome FROM prontuario pr
          JOIN pacientes p ON p.id = pr.paciente_id
-         ORDER BY pr.data_consulta DESC, pr.id DESC LIMIT 100"
+         ORDER BY pr.data_atendimento DESC, pr.id DESC
+         LIMIT 100"
     );
 }
+
 $registros = $stmt->fetchAll();
 
 include 'includes/header.php';
@@ -52,17 +56,49 @@ include 'includes/header.php';
     <?php if ($registros): ?>
     <table>
         <thead>
-            <tr><th>DATA</th><th>PACIENTE</th><th>TIPO</th><th>EVOLUÇÃO</th><th></th></tr>
+            <tr>
+                <th>DATA</th>
+                <th>PACIENTE</th>
+                <th>TIPO</th>
+                <th>EVOLUÇÃO</th>
+                <th></th>
+            </tr>
         </thead>
         <tbody>
             <?php foreach ($registros as $r): ?>
             <tr>
-                <td><?= date('d/m/Y', strtotime($r['data_consulta'])) ?></td>
-                <td><a href="paciente_ver.php?id=<?= $r['paciente_id'] ?>" style="color:#2d7a50;font-weight:600;"><?= sanitize($r['paciente_nome']) ?></a></td>
-                <td><span class="badge badge-blue"><?= sanitize($r['tipo']) ?></span></td>
-                <td><?= sanitize(mb_strimwidth($r['evolucao'] ?? '', 0, 80, '…')) ?></td>
+                <td><?= date('d/m/Y', strtotime($r['data_atendimento'])) ?></td>
+
+                <td>
+                    <a href="paciente_ver.php?id=<?= $r['paciente_id'] ?>" style="color:#2d7a50;font-weight:600;">
+                        <?= sanitize($r['paciente_nome']) ?>
+                    </a>
+                </td>
+
+                <td>
+                    <span class="badge badge-blue">
+                        <?= sanitize($r['tipo_atendimento']) ?>
+                    </span>
+                </td>
+
+                <td>
+                    <?=
+                    sanitize(mb_strimwidth(
+                        ($r['subjetivo'] ?? '') . ' ' .
+                        ($r['objetivo'] ?? '') . ' ' .
+                        ($r['avaliacao'] ?? ''),
+                        0,
+                        80,
+                        '…'
+                    ))
+                    ?>
+                </td>
+
                 <td style="white-space:nowrap;">
-                    <a href="prontuario_novo.php?id=<?= $r['id'] ?>&paciente_id=<?= $r['paciente_id'] ?>" class="btn btn-outline btn-sm">Editar</a>
+                    <a href="prontuario_novo.php?id=<?= $r['id'] ?>&paciente_id=<?= $r['paciente_id'] ?>" class="btn btn-outline btn-sm">
+                        Editar
+                    </a>
+
                     <form method="post" style="display:inline;" onsubmit="return confirmDelete(this);">
                         <input type="hidden" name="delete_id" value="<?= $r['id'] ?>">
                         <input type="hidden" name="paciente_id" value="<?= $r['paciente_id'] ?>">

@@ -13,7 +13,7 @@
         <div class="logo-icon">🌿</div>
         <div>
             <strong>EnterClinic</strong>
-            <span>Medicina Natural</span>
+            <span></span>
         </div>
     </div>
 

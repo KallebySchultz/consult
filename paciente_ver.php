@@ -15,8 +15,8 @@ $stmtA = $db->prepare("SELECT * FROM anamnese WHERE paciente_id = ? ORDER BY id 
 $stmtA->execute([$id]);
 $anamnese = $stmtA->fetch() ?: [];
 
-// Prontuário (timeline)
-$stmtP = $db->prepare("SELECT * FROM prontuario WHERE paciente_id = ? ORDER BY data_consulta DESC, id DESC");
+// ✅ PRONTUÁRIO CORRIGIDO
+$stmtP = $db->prepare("SELECT * FROM prontuario WHERE paciente_id = ? ORDER BY data_atendimento DESC, id DESC");
 $stmtP->execute([$id]);
 $prontuarios = $stmtP->fetchAll();
 
@@ -33,7 +33,10 @@ $activePage = 'pacientes';
 
 // Initials for avatar
 $initials = '';
-foreach (explode(' ', $paciente['nome']) as $w) { $initials .= mb_strtoupper(mb_substr($w,0,1)); if(strlen($initials)>=2) break; }
+foreach (explode(' ', $paciente['nome']) as $w) {
+    $initials .= mb_strtoupper(mb_substr($w,0,1));
+    if(strlen($initials)>=2) break;
+}
 
 include 'includes/header.php';
 ?>
@@ -123,31 +126,46 @@ include 'includes/header.php';
         <?php if ($prontuarios): ?>
         <ul class="timeline">
             <?php foreach ($prontuarios as $pr): ?>
+
+            <?php
+            $evolucao = trim(
+                ($pr['subjetivo'] ?? '') . ' ' .
+                ($pr['objetivo'] ?? '') . ' ' .
+                ($pr['avaliacao'] ?? '')
+            );
+            ?>
+
             <li class="timeline-item">
-                <div class="timeline-dot"><?= mb_strtoupper(mb_substr($pr['tipo'],0,1)) ?></div>
+                <div class="timeline-dot"><?= mb_strtoupper(mb_substr($pr['tipo_atendimento'],0,1)) ?></div>
                 <div class="timeline-body">
                     <div class="timeline-meta">
-                        <strong><?= date('d/m/Y', strtotime($pr['data_consulta'])) ?></strong>
-                        <span class="badge badge-blue"><?= sanitize($pr['tipo']) ?></span>
+                        <strong><?= date('d/m/Y', strtotime($pr['data_atendimento'])) ?></strong>
+                        <span class="badge badge-blue"><?= sanitize($pr['tipo_atendimento']) ?></span>
+
                         <a href="prontuario_novo.php?id=<?= $pr['id'] ?>&paciente_id=<?= $id ?>" style="margin-left:auto;font-size:.78rem;color:#2d7a50;">Editar</a>
+
                         <form method="post" action="prontuarios.php" style="display:inline;" onsubmit="return confirmDelete(this);">
                             <input type="hidden" name="delete_id" value="<?= $pr['id'] ?>">
                             <input type="hidden" name="paciente_id" value="<?= $id ?>">
                             <button type="submit" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:#ef4444;">Excluir</button>
                         </form>
                     </div>
-                    <?php if (trim($pr['evolucao'] ?? '')): ?>
+
+                    <?php if ($evolucao): ?>
                     <div class="timeline-section">Evolução Clínica</div>
-                    <div class="timeline-text"><?= sanitize($pr['evolucao']) ?></div>
+                    <div class="timeline-text"><?= sanitize($evolucao) ?></div>
                     <?php endif; ?>
+
                     <?php if (trim($pr['prescricao'] ?? '')): ?>
                     <div class="timeline-section">Prescrição</div>
                     <div class="timeline-text"><?= sanitize($pr['prescricao']) ?></div>
                     <?php endif; ?>
+
                     <?php if (trim($pr['exames'] ?? '')): ?>
                     <div class="timeline-section">Exames</div>
                     <div class="timeline-text"><?= sanitize($pr['exames']) ?></div>
                     <?php endif; ?>
+
                 </div>
             </li>
             <?php endforeach; ?>

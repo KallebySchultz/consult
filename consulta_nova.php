@@ -7,6 +7,9 @@ $pacienteId = (int)($_GET['paciente_id'] ?? 0);
 $editing    = $id > 0;
 $consulta   = [];
 
+// 🔥 pega usuário logado (ou usa 1 como padrão)
+$usuarioId = $_SESSION['usuario_id'] ?? 1;
+
 if ($editing) {
     $stmt = $db->prepare("SELECT * FROM consultas WHERE id = ?");
     $stmt->execute([$id]);
@@ -33,13 +36,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         if ($editing) {
             $db->prepare(
-                "UPDATE consultas SET paciente_id=?, data_hora=?, tipo=?, status=?, observacoes=? WHERE id=?"
-            )->execute([$pId, $dataHora, $tipo, $status, $observacoes, $id]);
+                "UPDATE consultas 
+                 SET paciente_id=?, data_hora=?, tipo=?, status=?, observacoes=?, usuario_id=? 
+                 WHERE id=?"
+            )->execute([$pId, $dataHora, $tipo, $status, $observacoes, $usuarioId, $id]);
         } else {
             $db->prepare(
-                "INSERT INTO consultas (paciente_id, data_hora, tipo, status, observacoes) VALUES (?,?,?,?,?)"
-            )->execute([$pId, $dataHora, $tipo, $status, $observacoes]);
+                "INSERT INTO consultas 
+                (paciente_id, data_hora, tipo, status, observacoes, usuario_id) 
+                VALUES (?,?,?,?,?,?)"
+            )->execute([$pId, $dataHora, $tipo, $status, $observacoes, $usuarioId]);
         }
+
         flash($editing ? 'Consulta atualizada.' : 'Consulta agendada com sucesso.');
         redirect($pId ? 'paciente_ver.php?id=' . $pId : 'consultas.php');
     }
@@ -63,31 +71,41 @@ include 'includes/header.php';
                     <option value="">Selecione o paciente…</option>
                     <?php foreach ($pacientes as $p): ?>
                     <?php $sel = (int)($consulta['paciente_id'] ?? $pacienteId) === $p['id']; ?>
-                    <option value="<?= $p['id'] ?>" <?= $sel ? 'selected' : '' ?>><?= sanitize($p['nome']) ?></option>
+                    <option value="<?= $p['id'] ?>" <?= $sel ? 'selected' : '' ?>>
+                        <?= sanitize($p['nome']) ?>
+                    </option>
                     <?php endforeach; ?>
                 </select>
             </div>
+
             <div class="form-group">
                 <label>Data e Hora *</label>
                 <input type="datetime-local" name="data_hora" required
                        value="<?= isset($consulta['data_hora']) ? date('Y-m-d\TH:i', strtotime($consulta['data_hora'])) : '' ?>">
             </div>
+
             <div class="form-group">
                 <label>Tipo</label>
                 <select name="tipo">
                     <?php foreach (['Consulta','Retorno','Urgência'] as $t): ?>
-                    <option value="<?= $t ?>" <?= ($consulta['tipo'] ?? 'Consulta') === $t ? 'selected' : '' ?>><?= $t ?></option>
+                    <option value="<?= $t ?>" <?= ($consulta['tipo'] ?? 'Consulta') === $t ? 'selected' : '' ?>>
+                        <?= $t ?>
+                    </option>
                     <?php endforeach; ?>
                 </select>
             </div>
+
             <div class="form-group">
                 <label>Status</label>
                 <select name="status">
                     <?php foreach (['Agendado','Confirmado','Realizado','Cancelado'] as $s): ?>
-                    <option value="<?= $s ?>" <?= ($consulta['status'] ?? 'Agendado') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                    <option value="<?= $s ?>" <?= ($consulta['status'] ?? 'Agendado') === $s ? 'selected' : '' ?>>
+                        <?= $s ?>
+                    </option>
                     <?php endforeach; ?>
                 </select>
             </div>
+
             <div class="form-group col-span-2">
                 <label>Observações</label>
                 <textarea name="observacoes"><?= sanitize($consulta['observacoes'] ?? '') ?></textarea>
