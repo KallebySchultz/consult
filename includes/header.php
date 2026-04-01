@@ -9,13 +9,9 @@
 <body>
 
 <aside class="sidebar">
-    <div class="sidebar-logo">
-        <div class="logo-icon">🌿</div>
-        <div>
-            <strong>EnterClinic</strong>
-            <span></span>
-        </div>
-    </div>
+    <<div class="sidebar-logo">
+    <img src="<?= $root ?? '' ?>assets/img/logo.png" alt="EnterClinic" class="logo-img">
+</div>
 
     <nav class="sidebar-nav">
         <p class="nav-section">PRINCIPAL</p>

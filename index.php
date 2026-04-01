@@ -25,14 +25,14 @@ include 'includes/header.php';
 
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-icon green">👥</div>
+        <div class="stat-icon green">👤</div>
         <div>
             <div class="stat-value"><?= $totalPacientes ?></div>
             <div class="stat-label">Pacientes Cadastrados</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon orange">📅</div>
+        <div class="stat-icon orange">📘</div>
         <div>
             <div class="stat-value"><?= $consultasHoje ?></div>
             <div class="stat-label">Consultas Hoje</div>
@@ -46,7 +46,7 @@ include 'includes/header.php';
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon teal">🌿</div>
+        <div class="stat-icon teal">📅</div>
         <div>
             <div class="stat-value"><?= date('d/m') ?></div>
             <div class="stat-label">Data de Hoje</div>

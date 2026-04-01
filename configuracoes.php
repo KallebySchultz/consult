@@ -60,7 +60,7 @@ include 'includes/header.php';
 </div>
 
 <div class="card">
-    <h2>🌿 Campos da Anamnese</h2>
+    <h2>Campos da Anamnese</h2>
     <p style="color:#6b7280;font-size:.85rem;margin-bottom:1rem;">Personalize os campos que aparecem na anamnese dos pacientes.</p>
 
     <form method="post">
@@ -102,13 +102,13 @@ include 'includes/header.php';
             </tbody>
         </table>
         <div class="form-actions" style="margin-top:.75rem;">
-            <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         </div>
     </form>
 </div>
 
 <div class="card">
-    <h2>➕ Adicionar Campo</h2>
+    <h2>Adicionar Campo</h2>
     <form method="post" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;">
         <input type="hidden" name="add_campo" value="1">
         <div class="form-group" style="flex:1;min-width:180px;">

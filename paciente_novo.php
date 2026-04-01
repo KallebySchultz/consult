@@ -1,9 +1,12 @@
 <?php
 require 'config.php';
 
+if (session_status() === PHP_SESSION_NONE) session_start();
+
 $db  = db();
 $id  = (int)($_GET['id'] ?? 0);
 $editing = $id > 0;
+
 
 $paciente = [];
 $anamnese = [];
@@ -41,63 +44,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('O nome do paciente é obrigatório.', 'error');
     } else {
 
-        if ($editing) {
-            $stmt = $db->prepare(
-                "UPDATE pacientes SET nome=?, data_nascimento=?, sexo=?, cpf=?, celular=?, email=?,
-                 endereco=?, cidade=?, profissao=?, estado_civil=?, observacoes=? WHERE id=?"
-            );
-            $stmt->execute([$nome, $dataNasc ?: null, $sexo, $cpf, $celular, $email,
-                            $endereco, $cidade, $profissao, $estadoCivil, $observacoes, $id]);
-            $pacienteId = $id;
-        } else {
-            $stmt = $db->prepare(
-                "INSERT INTO pacientes (nome, data_nascimento, sexo, cpf, celular, email,
-                 endereco, cidade, profissao, estado_civil, observacoes)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?)"
-            );
-            $stmt->execute([$nome, $dataNasc ?: null, $sexo, $cpf, $celular, $email,
-                            $endereco, $cidade, $profissao, $estadoCivil, $observacoes]);
-            $pacienteId = $db->lastInsertId();
+        try {
+            $db->beginTransaction();
+
+            if ($editing) {
+                $stmt = $db->prepare(
+                    "UPDATE pacientes SET nome=?, data_nascimento=?, sexo=?, cpf=?, celular=?, email=?,
+                     endereco=?, cidade=?, profissao=?, estado_civil=?, observacoes=? WHERE id=?"
+                );
+                $stmt->execute([$nome, $dataNasc ?: null, $sexo, $cpf, $celular, $email,
+                                $endereco, $cidade, $profissao, $estadoCivil, $observacoes, $id]);
+                $pacienteId = $id;
+            } else {
+                $stmt = $db->prepare(
+                    "INSERT INTO pacientes (nome, data_nascimento, sexo, cpf, celular, email,
+                     endereco, cidade, profissao, estado_civil, observacoes)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+                );
+                $stmt->execute([$nome, $dataNasc ?: null, $sexo, $cpf, $celular, $email,
+                                $endereco, $cidade, $profissao, $estadoCivil, $observacoes]);
+                $pacienteId = $db->lastInsertId();
+            }
+
+            // =========================
+            // ✅ ANAMNESE DINÂMICA
+            // =========================
+            $anamneseData = [];
+
+            foreach ($campos as $campo) {
+                $anamneseData[$campo['nome']] = trim($_POST['anamnese_' . $campo['nome']] ?? '');
+            }
+
+            // Verifica se já existe
+            $existsStmt = $db->prepare("SELECT id FROM anamnese WHERE paciente_id = ?");
+            $existsStmt->execute([$pacienteId]);
+            $existingAnamnese = $existsStmt->fetch();
+
+            $cols = array_keys($anamneseData);
+
+            if ($existingAnamnese) {
+                // UPDATE dinâmico + usuario_id
+                $sets = "usuario_id = ?, " . implode(', ', array_map(fn($c) => "$c = ?", $cols));
+
+                $vals = array_merge(
+                    [$usuarioId],
+                    array_values($anamneseData),
+                    [$pacienteId]
+                );
+
+                $stmt = $db->prepare("UPDATE anamnese SET $sets WHERE paciente_id = ?");
+                $stmt->execute($vals);
+            } else {
+                // INSERT dinâmico + usuario_id
+                $colStr = implode(', ', $cols);
+                $phStr  = implode(', ', array_fill(0, count($cols), '?'));
+
+                $stmt = $db->prepare("INSERT INTO anamnese (usuario_id, paciente_id, $colStr) VALUES (?, ?, $phStr)");
+
+                $stmt->execute(array_merge(
+                    [$usuarioId, $pacienteId],
+                    array_values($anamneseData)
+                ));
+            }
+
+            $db->commit();
+
+            flash($editing ? 'Paciente atualizado com sucesso.' : 'Paciente cadastrado com sucesso.');
+            redirect('paciente_ver.php?id=' . $pacienteId);
+
+        } catch (Exception $e) {
+            $db->rollBack();
+            die("Erro ao salvar: " . $e->getMessage());
         }
-
-        // =========================
-        // ✅ ANAMNESE DINÂMICA
-        // =========================
-        $anamneseData = [];
-
-        foreach ($campos as $campo) {
-            $anamneseData[$campo['nome']] = trim($_POST['anamnese_' . $campo['nome']] ?? '');
-        }
-
-        // Verifica se já existe
-        $existsStmt = $db->prepare("SELECT id FROM anamnese WHERE paciente_id = ?");
-        $existsStmt->execute([$pacienteId]);
-        $existingAnamnese = $existsStmt->fetch();
-
-        $cols = array_keys($anamneseData);
-
-        if ($existingAnamnese) {
-            // UPDATE dinâmico
-            $sets = implode(', ', array_map(fn($c) => "$c = ?", $cols));
-            $vals = array_values($anamneseData);
-            $vals[] = $pacienteId;
-
-            $stmt = $db->prepare("UPDATE anamnese SET $sets WHERE paciente_id = ?");
-            $stmt->execute($vals);
-        } else {
-            // INSERT dinâmico
-            $colStr = implode(', ', $cols);
-            $phStr  = implode(', ', array_fill(0, count($cols), '?'));
-            $vals   = array_values($anamneseData);
-
-            array_unshift($vals, $pacienteId);
-
-            $stmt = $db->prepare("INSERT INTO anamnese (paciente_id, $colStr) VALUES (?, $phStr)");
-            $stmt->execute($vals);
-        }
-
-        flash($editing ? 'Paciente atualizado com sucesso.' : 'Paciente cadastrado com sucesso.');
-        redirect('paciente_ver.php?id=' . $pacienteId);
     }
 }
 

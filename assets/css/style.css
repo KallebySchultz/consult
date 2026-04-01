@@ -14,7 +14,7 @@ body {
 .sidebar {
     width: 240px;
     min-height: 100vh;
-    background: #1e4d35;
+    background: #034724;
     color: #c8dfd0;
     flex-shrink: 0;
     display: flex;
@@ -23,10 +23,19 @@ body {
 
 .sidebar-logo {
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: .75rem;
-    padding: 1.25rem 1.25rem 1.5rem;
-    background: #163828;
+    padding: 1rem;
+    background: transparent; /* remove fundo grande */
+}
+
+.sidebar-logo img {
+    background: #ffffff;
+    padding: .5rem .75rem;
+    border-radius: 12px; /* arredondado */
+    max-height: 80px;
+    max-width: 100%;
+    object-fit: contain;
 }
 
 .logo-icon {
@@ -68,7 +77,7 @@ body {
 .sidebar-nav a {
     display: block;
     padding: .55rem 1.25rem;
-    color: #c8dfd0;
+    color: #ffffff;
     text-decoration: none;
     font-size: .9rem;
     border-radius: 0;
@@ -493,4 +502,11 @@ tbody tr:hover { background: #f9fafb; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
     .form-grid  { grid-template-columns: 1fr; }
     .col-span-2, .col-span-3 { grid-column: span 1; }
+}
+
+.logo-img {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    display: block;
 }
