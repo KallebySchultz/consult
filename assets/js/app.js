@@ -13,13 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pane) pane.classList.add('active');
         });
     });
-
-    // Activate tab from URL hash (e.g. #tab-prontuario)
-    if (window.location.hash) {
-        var hashId = window.location.hash.substring(1);
-        var hashBtn = document.querySelector('[data-tab="' + hashId + '"]');
-        if (hashBtn) hashBtn.click();
-    }
 });
 
 // Confirm delete
@@ -27,5 +20,4 @@ function confirmDelete(form) {
     if (!confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita.')) {
         return false;
     }
-    return true;
 }
